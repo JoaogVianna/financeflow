@@ -1,5 +1,6 @@
 package com.financeflow.repository;
 
+import com.financeflow.dto.CategoryTotalRow;
 import com.financeflow.entity.Transaction;
 import com.financeflow.entity.TransactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -49,4 +50,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                   @Param("transactionType") TransactionType transactionType,
                                   @Param("startDate") LocalDate startDate,
                                   @Param("endDate") LocalDate endDate);
+
+    // Agrupa no banco: uma linha por (categoria, tipo) com a soma dos valores no período.
+    @Query("""
+            select new com.financeflow.dto.CategoryTotalRow(c.id, c.name, t.type, sum(t.amount))
+            from Transaction t join t.category c
+            where t.user.id = :userId
+              and t.date between :startDate and :endDate
+            group by c.id, c.name, t.type
+            order by c.name, t.type
+            """)
+    List<CategoryTotalRow> totalsByCategory(@Param("userId") Long userId,
+                                            @Param("startDate") LocalDate startDate,
+                                            @Param("endDate") LocalDate endDate);
 }
