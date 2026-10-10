@@ -9,35 +9,44 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     boolean existsByCategoryId(Long categoryId);
 
+    Optional<Transaction> findByIdAndUserId(Long id, Long userId);
+
     @Query("""
             select t from Transaction t join fetch t.category
-            where t.date between :startDate and :endDate
+            where t.user.id = :userId
+              and t.date between :startDate and :endDate
             order by t.date desc, t.id desc
             """)
-    List<Transaction> findByPeriod(@Param("startDate") LocalDate startDate,
+    List<Transaction> findByPeriod(@Param("userId") Long userId,
+                                   @Param("startDate") LocalDate startDate,
                                    @Param("endDate") LocalDate endDate);
 
     @Query("""
             select t from Transaction t join fetch t.category
-            where t.date between :startDate and :endDate
+            where t.user.id = :userId
+              and t.date between :startDate and :endDate
               and t.category.id = :categoryId
             order by t.date desc, t.id desc
             """)
-    List<Transaction> findByPeriodAndCategory(@Param("startDate") LocalDate startDate,
+    List<Transaction> findByPeriodAndCategory(@Param("userId") Long userId,
+                                              @Param("startDate") LocalDate startDate,
                                               @Param("endDate") LocalDate endDate,
                                               @Param("categoryId") Long categoryId);
 
     @Query("""
             select sum(t.amount) from Transaction t
-            where t.type = :transactionType
+            where t.user.id = :userId
+              and t.type = :transactionType
               and t.date between :startDate and :endDate
             """)
-    BigDecimal sumByTypeAndPeriod(@Param("transactionType") TransactionType transactionType,
+    BigDecimal sumByTypeAndPeriod(@Param("userId") Long userId,
+                                  @Param("transactionType") TransactionType transactionType,
                                   @Param("startDate") LocalDate startDate,
                                   @Param("endDate") LocalDate endDate);
 }

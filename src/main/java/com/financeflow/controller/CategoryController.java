@@ -2,9 +2,12 @@ package com.financeflow.controller;
 
 import com.financeflow.dto.CategoryRequest;
 import com.financeflow.dto.CategoryResponse;
+import com.financeflow.security.CurrentUser;
 import com.financeflow.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,28 +32,29 @@ public class CategoryController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CategoryResponse create(@Valid @RequestBody CategoryRequest request) {
-        return categoryService.create(request);
+    public CategoryResponse create(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody CategoryRequest request) {
+        return categoryService.create(CurrentUser.id(jwt), request);
     }
 
     @GetMapping
-    public List<CategoryResponse> findAll() {
-        return categoryService.findAll();
+    public List<CategoryResponse> findAll(@AuthenticationPrincipal Jwt jwt) {
+        return categoryService.findAll(CurrentUser.id(jwt));
     }
 
     @GetMapping("/{id}")
-    public CategoryResponse findById(@PathVariable Long id) {
-        return categoryService.findById(id);
+    public CategoryResponse findById(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return categoryService.findById(CurrentUser.id(jwt), id);
     }
 
     @PutMapping("/{id}")
-    public CategoryResponse update(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
-        return categoryService.update(id, request);
+    public CategoryResponse update(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id,
+                                   @Valid @RequestBody CategoryRequest request) {
+        return categoryService.update(CurrentUser.id(jwt), id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        categoryService.delete(id);
+    public void delete(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        categoryService.delete(CurrentUser.id(jwt), id);
     }
 }

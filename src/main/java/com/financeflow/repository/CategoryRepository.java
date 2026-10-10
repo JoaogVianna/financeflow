@@ -1,11 +1,20 @@
 package com.financeflow.repository;
 
 import com.financeflow.entity.Category;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
-    boolean existsByNameIgnoreCase(String name);
+    List<Category> findByUserId(Long userId, Sort sort);
 
-    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+    // Buscar sempre por id E dono: se a categoria é de outro usuário, "não existe".
+    Optional<Category> findByIdAndUserId(Long id, Long userId);
+
+    boolean existsByUserIdAndNameIgnoreCase(Long userId, String name);
+
+    boolean existsByUserIdAndNameIgnoreCaseAndIdNot(Long userId, String name, Long id);
 }

@@ -40,6 +40,10 @@ public class Transaction {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     public Long getId() { return id; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -51,4 +55,6 @@ public class Transaction {
     public void setDate(LocalDate date) { this.date = date; }
     public Category getCategory() { return category; }
     public void setCategory(Category category) { this.category = category; }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 }
