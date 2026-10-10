@@ -6,11 +6,12 @@ import com.financeflow.dto.TransactionResponse;
 import com.financeflow.entity.Category;
 import com.financeflow.entity.Transaction;
 import com.financeflow.entity.TransactionType;
+import com.financeflow.exception.InvalidRequestException;
+import com.financeflow.exception.ResourceNotFoundException;
 import com.financeflow.repository.CategoryRepository;
 import com.financeflow.repository.TransactionRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,18 +34,15 @@ public class TransactionService {
     }
 
     public TransactionResponse create(TransactionRequest request) {
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Categoria não encontrada: " + request.categoryId()));
-
         Transaction transaction = new Transaction();
-        transaction.setDescription(request.description().trim());
-        transaction.setAmount(request.amount());
-        transaction.setType(request.type());
-        transaction.setDate(request.date());
-        transaction.setCategory(category);
-
+        apply(transaction, request);
         return TransactionResponse.from(transactionRepository.save(transaction));
+    }
+
+    // @Transactional mantém a conexão aberta pra carregar a categoria (carregamento "lazy").
+    @Transactional(readOnly = true)
+    public TransactionResponse findById(Long id) {
+        return TransactionResponse.from(getTransaction(id));
     }
 
     public List<TransactionResponse> findAll(LocalDate startDate, LocalDate endDate, Long categoryId) {
@@ -59,6 +57,18 @@ public class TransactionService {
         return transactions.stream().map(TransactionResponse::from).toList();
     }
 
+    @Transactional
+    public TransactionResponse update(Long id, TransactionRequest request) {
+        Transaction transaction = getTransaction(id);
+        apply(transaction, request);
+        return TransactionResponse.from(transactionRepository.save(transaction));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        transactionRepository.delete(getTransaction(id));
+    }
+
     // Saldo = total de receitas - total de despesas no período.
     public BalanceResponse balance(LocalDate startDate, LocalDate endDate) {
         LocalDate start = startDate != null ? startDate : MIN_DATE;
@@ -71,10 +81,25 @@ public class TransactionService {
         return new BalanceResponse(startDate, endDate, income, expense, income.subtract(expense));
     }
 
+    private void apply(Transaction transaction, TransactionRequest request) {
+        Category category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Categoria não encontrada: " + request.categoryId()));
+        transaction.setDescription(request.description().trim());
+        transaction.setAmount(request.amount());
+        transaction.setType(request.type());
+        transaction.setDate(request.date());
+        transaction.setCategory(category);
+    }
+
+    private Transaction getTransaction(Long id) {
+        return transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada: " + id));
+    }
+
     private void validatePeriod(LocalDate start, LocalDate end) {
         if (start.isAfter(end)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "A data inicial não pode ser depois da data final");
+            throw new InvalidRequestException("A data inicial não pode ser depois da data final");
         }
     }
 
